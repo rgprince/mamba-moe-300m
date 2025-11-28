@@ -1,0 +1,126 @@
+# Stage 1: Base Pretraining Configuration
+
+# Inherits from model_config.yaml
+model_config: "configs/model_config.yaml"
+
+training:
+  stage: "pretrain"
+  num_steps: 100000  # ~100B tokens at batch_size 1024
+  
+  # Hardware
+  tpu:
+    type: "v3-8"
+    num_cores: 8
+    
+  # Optimization
+  optimizer:
+    type: "adamw"
+    learning_rate:
+      init: 3.0e-4
+      schedule: "cosine"
+      warmup_steps: 2000
+      min_lr: 3.0e-5
+    beta1: 0.9
+    beta2: 0.95
+    weight_decay: 0.1
+    grad_clip: 1.0
+  
+  # Mixed Precision
+  mixed_precision:
+    enabled: true
+    dtype: "bfloat16"
+    compute_dtype: "bfloat16"
+    param_dtype: "float32"
+  
+  # Batch Configuration
+  batch:
+    global_batch_size: 1024  # Total across all TPU cores
+    per_core_batch_size: 128  # 1024 / 8
+    sequence_length: 8192
+    gradient_accumulation: 1
+  
+  # Parallelism
+  parallel:
+    data_parallel: 8  # Across TPU cores
+    model_parallel: 1  # No model parallelism (fits in memory)
+    
+  # Gradient Checkpointing
+  gradient_checkpointing:
+    enabled: true
+    checkpoint_every_n_layers: 2  # Checkpoint every 2 layers
+  
+  # Distillation
+  distillation:
+    enabled: true
+    teacher_model: "Qwen/Qwen2.5-7B"  # Or DeepSeek-R1-Distill-Qwen-7B
+    temperature: 2.0
+    alpha: 0.2  # 20% soft labels, 80% hard labels
+    teacher_batch_size: 32  # Smaller batch for teacher inference
+  
+  # Data
+  data:
+    sources:
+      - name: "fineweb-edu"
+        weight: 0.4
+        epochs: 4  # High quality, see multiple times
+      - name: "the-stack-v2"
+        weight: 0.15
+        epochs: 2
+      - name: "openwebmath"
+        weight: 0.1
+        epochs: 3
+      - name: "proof-pile-2"
+        weight: 0.1
+        epochs: 3
+      - name: "cosmopedia"
+        weight: 0.15
+        epochs: 2
+      - name: "slimpajama"
+        weight: 0.1
+        epochs: 1
+    
+    preprocessing:
+      min_length: 512
+      max_length: 8192
+      deduplication: true
+      quality_filter: true
+      
+    streaming: true  # Stream from cloud storage
+    num_workers: 16
+    prefetch_size: 1000
+
+  # Checkpointing
+  checkpoint:
+    save_every_n_steps: 5000
+    keep_last_n: 5
+    save_best: true
+    metric: "validation_loss"
+    async_save: true
+  
+  # Logging
+  logging:
+    log_every_n_steps: 10
+    eval_every_n_steps: 1000
+    wandb:
+      enabled: true
+      project: "mamba-moe-300m"
+      entity: "your-wandb-username"
+      name: "stage1-pretrain"
+    tensorboard:
+      enabled: true
+      log_dir: "logs/stage1"
+  
+  # Validation
+  validation:
+    num_steps: 100
+    datasets: ["fineweb-edu-val", "pile-val"]
+
+  # Early Stopping
+  early_stopping:
+    enabled: false
+    patience: 10
+    min_delta: 0.001
+
+# Reproducibility
+seed: 42
+deterministic: false  # TPUs aren't fully deterministic anyway

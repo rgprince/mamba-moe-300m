@@ -1,0 +1,94 @@
+# Mamba-MoE 300M Model Configuration
+
+model:
+  name: "mamba-moe-300m-v1"
+  version: "1.0.0"
+  
+  # Vocabulary & Embeddings
+  vocab_size: 32000
+  embedding:
+    factorized: true
+    embed_dim: 256  # Factorized dimension
+    hidden_dim: 1024
+    dropout: 0.1
+    tie_weights: true  # Tie input/output embeddings
+  
+  # Position Encoding
+  position_encoding:
+    type: "yarn_rope"  # YaRN RoPE
+    max_seq_len_train: 8192
+    max_seq_len_infer: 32768
+    rope_theta: 10000.0
+    yarn_scale: 1.0
+  
+  # Architecture
+  num_layers: 24
+  hidden_dim: 1024
+  intermediate_dim: 2816  # ~2.75x hidden (Mamba standard)
+  
+  # Mamba 2 SSM Configuration
+  mamba:
+    state_dim: 16  # SSM state dimension
+    conv_kernel: 4
+    expand_factor: 2
+    use_fast_path: true  # Hardware-optimized scan
+    dt_rank: "auto"  # Usually hidden_dim // 16
+  
+  # Soft MoE Configuration
+  moe:
+    num_layers: 6  # MoE every 4th layer (layers 4, 8, 12, 16, 20, 24)
+    layer_indices: [3, 7, 11, 15, 19, 23]  # 0-indexed
+    num_experts: 4  # Domain experts (code, math, chat, reasoning)
+    shared_expert: true  # Always-active shared expert
+    routing:
+      type: "soft"  # Soft routing (weighted blend)
+      temperature: 1.0
+      expert_dropout: 0.1
+    load_balancing:
+      loss_weight: 0.01
+      target_entropy: 0.95
+  
+  # Differential Multi-Query Attention
+  attention:
+    num_layers: 4  # Attention every 6th layer (layers 6, 12, 18, 24)
+    layer_indices: [5, 11, 17, 23]  # 0-indexed
+    num_heads: 4
+    num_kv_heads: 1  # Multi-query (shared KV)
+    head_dim: 256  # hidden_dim / num_heads
+    differential: true  # Differential attention
+    diff_lambda: 0.5
+    dropout: 0.1
+    use_flash_attention: true
+  
+  # Memory System
+  memory:
+    num_recurrent_tokens: 8  # L2: Learnable compression tokens
+    memory_dim: 1024
+    controller:
+      hidden_dim: 512
+      num_layers: 2
+    allocation:
+      enabled: true  # Dynamic allocation
+      num_tiers: 4  # L1, L2, L3, L4
+  
+  # Normalization
+  norm:
+    type: "rmsnorm"
+    eps: 1e-6
+  
+  # Activation
+  activation: "swiglu"  # Gated activation
+  
+  # Regularization
+  dropout: 0.1
+  attention_dropout: 0.1
+  residual_dropout: 0.1
+  layer_drop_rate: 0.0  # Stochastic depth (0 = disabled)
+  
+  # Initialization
+  init:
+    type: "normal"
+    std: 0.02
+    rescale_prenorm_residual: true
+
+# Training will be in separate config files (stage1_pretrain.yaml, etc.)
