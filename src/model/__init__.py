@@ -4,7 +4,7 @@ Model package - complete export
 
 from .config import ModelConfig, count_parameters
 from .utils import RMSNorm, SwiGLU, apply_rotary_emb, precompute_freqs_rope, get_causal_mask
-from .embedding import Embedding Layer, OutputHead
+from .embedding import EmbeddingLayer, OutputHead
 from .mamba import MambaBlock, MambaLayer
 from .moe import SoftMoE, MoELayer
 from .attention import DifferentialMultiQueryAttention, AttentionLayer
