@@ -29,11 +29,7 @@ class SelectiveSSM(nn.Module):
     """
     hidden_dim: int
     state_dim: int = 16  # N in the paper
-    dt_rank: int = None  # Usually hidden_dim // 16
-    
-    def setup(self):
-        if self.dt_rank is None:
-            self.dt_rank = max(32, self.hidden_dim // 16)
+    dt_rank: int = 128  # Rank for dt projection (usually hidden_dim // 16)
     
     @nn.compact
     def __call__(self, x):
@@ -182,6 +178,7 @@ class MambaBlock(nn.Module):
     state_dim: int = 16
     conv_kernel: int = 4
     expand_factor: int = 2
+    dt_rank: int = 128
     dropout: float = 0.0
     
     @nn.compact
@@ -220,6 +217,7 @@ class MambaBlock(nn.Module):
         y = SelectiveSSM(
             hidden_dim=expanded_dim,
             state_dim=self.state_dim,
+            dt_rank=self.dt_rank,
             name='ssm'
         )(x_conv)
         
@@ -247,6 +245,7 @@ class MambaLayer(nn.Module):
     state_dim: int = 16
     conv_kernel: int = 4
     expand_factor: int = 2
+    dt_rank: int = 128
     dropout: float = 0.0
     norm_eps: float = 1e-6
     
@@ -270,6 +269,7 @@ class MambaLayer(nn.Module):
             state_dim=self.state_dim,
             conv_kernel=self.conv_kernel,
             expand_factor=self.expand_factor,
+            dt_rank=self.dt_rank,
             dropout=self.dropout,
             name='mamba'
         )(x, deterministic=deterministic)

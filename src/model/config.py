@@ -36,7 +36,7 @@ class MambaConfig:
     conv_kernel: int = 4
     expand_factor: int = 2
     use_fast_path: bool = True
-    dt_rank: str = "auto"  # or int
+    dt_rank: int = 128  # Changed from "auto" to concrete int value
 
 
 @dataclass

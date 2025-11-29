@@ -61,6 +61,7 @@ class HybridBlock(nn.Module):
             state_dim=self.config.mamba.state_dim,
             conv_kernel=self.config.mamba.conv_kernel,
             expand_factor=self.config.mamba.expand_factor,
+            dt_rank=self.config.mamba.dt_rank,
             dropout=self.config.dropout,
             norm_eps=self.config.norm_eps,
             name='mamba'
