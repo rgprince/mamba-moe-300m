@@ -26,15 +26,15 @@ print("=" * 70)
 
 # Configuration
 TOTAL_STEPS = 1000  # Train for 1000 steps (adjust based on time)
-BATCH_SIZE = 4      # Increase for faster training
-SEQ_LEN = 512       # Longer sequences for better context
+BATCH_SIZE = 2      # Reduced for TPU v5e memory (was 4)
+SEQ_LEN = 256       # Reduced for TPU v5e memory (was 512)
 LEARNING_RATE = 3e-4
 SAVE_EVERY = 100    # Save checkpoint every 100 steps
 
 print(f"\n[CONFIG]")
 print(f"  Steps: {TOTAL_STEPS}")
-print(f"  Batch size: {BATCH_SIZE}")
-print(f"  Sequence length: {SEQ_LEN}")
+print(f"  Batch size: {BATCH_SIZE} (TPU optimized)")
+print(f"  Sequence length: {SEQ_LEN} (TPU optimized)")
 print(f"  Save interval: {SAVE_EVERY}")
 
 # Step 1: Load Datasets
