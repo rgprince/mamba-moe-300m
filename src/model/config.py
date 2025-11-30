@@ -137,7 +137,19 @@ class ModelConfig:
             target_entropy=model_dict.get('moe', {}).get('load_balancing', {}).get('target_entropy', 0.95),
         )
         attn_cfg = AttentionConfig(**model_dict.get('attention', {}))
-        mem_cfg = MemoryConfig(**model_dict.get('memory', {}))
+        
+        # Parse memory config with nested controller
+        memory_dict = model_dict.get('memory', {})
+        controller_dict = memory_dict.pop('controller', {})
+        
+        mem_cfg = MemoryConfig(
+            num_recurrent_tokens=memory_dict.get('num_recurrent_tokens', 8),
+            memory_dim=memory_dict.get('memory_dim', 1024),
+            controller_hidden_dim=controller_dict.get('hidden_dim', 512),
+            controller_num_layers=controller_dict.get('num_layers', 2),
+            allocation_enabled=memory_dict.get('allocation_enabled', True),
+            num_tiers=memory_dict.get('num_tiers', 4)
+        )
         
         return cls(
             name=model_dict.get('name', 'mamba-moe-300m-v1'),
