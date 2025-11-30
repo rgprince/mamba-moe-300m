@@ -32,7 +32,7 @@ model:
     conv_kernel: 4
     expand_factor: 2
     use_fast_path: true  # Hardware-optimized scan
-    dt_rank: "auto"  # Usually hidden_dim // 16
+    dt_rank: 128  # Rank for dt projection (hidden_dim // 16 ≈ 64-128)
   
   # Soft MoE Configuration
   moe:

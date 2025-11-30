@@ -124,7 +124,16 @@ class ModelConfig:
         
         embedding_cfg = EmbeddingConfig(**model_dict.get('embedding', {}))
         pos_cfg = PositionEncodingConfig(**model_dict.get('position_encoding', {}))
-        mamba_cfg = MambaConfig(**model_dict.get('mamba', {}))
+        
+        # Parse mamba config with type casting
+        mamba_dict = model_dict.get('mamba', {})
+        mamba_cfg = MambaConfig(
+            state_dim=int(mamba_dict.get('state_dim', 16)),
+            conv_kernel=int(mamba_dict.get('conv_kernel', 4)),
+            expand_factor=int(mamba_dict.get('expand_factor', 2)),
+            use_fast_path=mamba_dict.get('use_fast_path', True),
+            dt_rank=int(mamba_dict.get('dt_rank', 128))  # Explicit int cast
+        )
         moe_cfg = MoEConfig(
             num_layers=model_dict.get('moe', {}).get('num_layers', 6),
             layer_indices=model_dict.get('moe', {}).get('layer_indices', [3, 7, 11, 15, 19, 23]),
