@@ -44,54 +44,64 @@ print(f"  Expected: {(TOTAL_STEPS * SEQ_LEN) / 1e9:.2f}B tokens processed")
 
 # Step 1: Load Datasets
 print(f"\n{'='*70}")
-print("[1/6] Loading HIGH-QUALITY Datasets from HuggingFace")
+print("[1/6] Loading HIGH-QUALITY Datasets (10GB+ to prevent memorization)")
 print(f"{'='*70}")
-print(f"Note: First download takes ~5-10 min, then cached for future runs")
+print(f"Note: Large download (~10GB) takes 15-20 min first time, then cached")
+print(f"For 509M parameters, we need 5-10GB data to avoid memorization!")
 
 from datasets import load_dataset
 
-# HIGH-QUALITY, CLEAN DATASETS
-# Wikipedia: Gold standard encyclopedia (~500MB subset)
-# OpenWebText: Quality web text from Reddit (~500MB subset)
-# Total: ~1GB text data, ~250M tokens
+# HIGH-QUALITY, LARGE-SCALE DATASETS
+# Total: ~10GB text, ~2.5B tokens (5 tokens/param - good ratio!)
+# Wikipedia: 500k articles (~6GB)
+# OpenWebText: 200k docs (~3GB)  
+# C4: Clean crawl subset (~2GB)
 
 datasets_to_load = [
-    ("wikipedia", "20220301.en", 75000),  # 75k Wikipedia articles
-    ("openwebtext", None, 50000),          # 50k web documents
+    ("wikipedia", "20220301.en", 500000),   # 500k Wikipedia articles
+    ("openwebtext", None, 200000),          # 200k quality web docs
+    ("allenai/c4", "en", 100000),           # 100k C4 clean documents
 ]
 
 all_texts = []
 total_size_mb = 0
 
 for idx, config_tuple in enumerate(datasets_to_load):
-    if len(config_tuple) == 3 and config_tuple[1] is not None:
-        dataset_name, config, max_samples = config_tuple
-    else:
-        dataset_name, _, max_samples = config_tuple
-        config = None
+    dataset_name, config, max_samples = config_tuple
     
     try:
         if dataset_name == "wikipedia":
-            print(f"\n  [1/2] Loading Wikipedia (English)...")
-            print(f"        Downloading {max_samples:,} articles (~400-500MB)")
+            print(f"\n  [1/3] Loading Wikipedia (English)...")
+            print(f"        Downloading {max_samples:,} articles (~5-6GB)")
             ds = load_dataset(dataset_name, config, split=f"train[:{max_samples}]", trust_remote_code=True)
             texts = [f"{item['title']}\n\n{item['text']}" for item in ds if item.get('text') and len(item['text']) > 100]
             chars = sum(len(t) for t in texts)
             all_texts.extend(texts)
             total_size_mb += chars / 1e6
             print(f"        ✓ Loaded {len(texts):,} articles")
-            print(f"        ✓ Size: {chars/1e6:.1f}MB text ({chars/1e9:.2f}GB)")
+            print(f"        ✓ Size: {chars/1e6:.1f}MB ({chars/1e9:.2f}GB)")
             
         elif dataset_name == "openwebtext":
-            print(f"\n  [2/2] Loading OpenWebText (Reddit quality)...")
-            print(f"        Downloading {max_samples:,} documents (~300-400MB)")
+            print(f"\n  [2/3] Loading OpenWebText (Reddit quality)...")
+            print(f"        Downloading {max_samples:,} documents (~2-3GB)")
             ds = load_dataset(dataset_name, split=f"train[:{max_samples}]", trust_remote_code=True)
             texts = [item['text'] for item in ds if item.get('text') and len(item['text']) > 200]
             chars = sum(len(t) for t in texts)
             all_texts.extend(texts)
             total_size_mb += chars / 1e6
             print(f"        ✓ Loaded {len(texts):,} documents")
-            print(f"        ✓ Size: {chars/1e6:.1f}MB text ({chars/1e9:.2f}GB)")
+            print(f"        ✓ Size: {chars/1e6:.1f}MB ({chars/1e9:.2f}GB)")
+            
+        elif dataset_name == "allenai/c4":
+            print(f"\n  [3/3] Loading C4 (Clean web crawl)...")
+            print(f"        Downloading {max_samples:,} documents (~1-2GB)")
+            ds = load_dataset(dataset_name, config, split=f"train[:{max_samples}]", trust_remote_code=True)
+            texts = [item['text'] for item in ds if item.get('text') and len(item['text']) > 200]
+            chars = sum(len(t) for t in texts)
+            all_texts.extend(texts)
+            total_size_mb += chars / 1e6
+            print(f"        ✓ Loaded {len(texts):,} documents")
+            print(f"        ✓ Size: {chars/1e6:.1f}MB ({chars/1e9:.2f}GB)")
             
     except Exception as e:
         print(f"  ⚠ Failed to load {dataset_name}: {e}")
@@ -104,8 +114,13 @@ print(f"\n{'='*70}")
 print(f"DATASET SUMMARY")
 print(f"{'='*70}")
 print(f"Total documents: {len(all_texts):,}")
-print(f"Total size: {len(combined_text)/1e6:.1f}MB ({len(combined_text)/1e9:.3f}GB)")
+print(f"Total size: {len(combined_text)/1e6:.1f}MB ({len(combined_text)/1e9:.2f}GB)")
 print(f"Estimated tokens: ~{len(combined_text)/4/1e6:.1f}M tokens (@ 4 chars/token)")
+print(f"\nModel memorization check:")
+print(f"  Model params: 509M")
+print(f"  Data tokens: ~{len(combined_text)/4/1e6:.1f}M")
+print(f"  Ratio: {(len(combined_text)/4/1e6)/509:.2f} tokens/param")
+print(f"  Status: {'✅ GOOD (>2)' if (len(combined_text)/4/1e6)/509 > 2 else '⚠️  LOW (<2) - may memorize'}")
 print(f"\nTraining plan:")
 print(f"  • 50,000 steps × 128 tokens = 6.4M tokens per epoch")
 print(f"  • ~{(len(combined_text)/4/1e6) / 6.4:.1f} epochs through full dataset")
