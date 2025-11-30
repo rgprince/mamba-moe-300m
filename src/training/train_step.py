@@ -61,13 +61,31 @@ def create_train_step(model, learning_rate_fn):
         def loss_fn(params):
             """Compute loss and auxiliary outputs"""
             # Forward pass
-            logits, aux = model.apply(
-                {'params': params},
-                batch['input_ids'],
-                deterministic=False,
-                return_aux=True,
-                rngs={'dropout': dropout_rng}
-            )
+            try:
+                # Try with return_aux first
+                outputs = model.apply(
+                    {'params': params},
+                    batch['input_ids'],
+                    deterministic=False,
+                    rngs={'dropout': dropout_rng}
+                )
+                
+                # Handle both cases: with and without aux
+                if isinstance(outputs, tuple):
+                    logits, aux = outputs
+                else:
+                    logits = outputs
+                    aux = {}
+                    
+            except TypeError:
+                # Model doesn't support return_aux
+                logits = model.apply(
+                    {'params': params},
+                    batch['input_ids'],
+                    deterministic=False,
+                    rngs={'dropout': dropout_rng}
+                )
+                aux = {}
             
             # Main loss: cross-entropy
             # Flatten for loss computation
@@ -75,20 +93,20 @@ def create_train_step(model, learning_rate_fn):
             labels_flat = batch['labels'].reshape(-1)
             
             # Cross-entropy (ignoring padding)
-            ce_loss = optax.softmax_cross_entropy_with_integer_labels(
+            ce_loss_per_token = optax.softmax_cross_entropy_with_integer_labels(
                 logits_flat,
                 labels_flat
             )
             
-            # Mask padding tokens
-            mask = (labels_flat != 0)  # Assuming pad_id = 0
-            ce_loss = jnp.sum(ce_loss * mask) / jnp.sum(mask)
+            # Mask padding tokens (assuming pad_id = 0)
+            mask = (labels_flat != 0).astype(jnp.float32)
+            ce_loss = jnp.sum(ce_loss_per_token * mask) / jnp.maximum(jnp.sum(mask), 1.0)
             
             # Auxiliary losses (MoE load balancing, etc.)
-            aux_losses = aux.get('aux_losses', {})
+            aux_losses = aux.get('aux_losses', {}) if isinstance(aux, dict) else {}
             aux_loss_total = sum(aux_losses.values()) if aux_losses else 0.0
             
-            # Total loss
+            # Total loss (scalar)
             total_loss = ce_loss + 0.01 * aux_loss_total
             
             # Return loss and metrics
