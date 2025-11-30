@@ -105,14 +105,15 @@ from src.training import (
     create_optimizer
 )
 
-# Use TINY config for fast compilation on Colab
-config_path = 'configs/model_config_tiny.yaml'
+# Use FULL config (for Kaggle with better GPU)
+config_path = 'configs/model_config.yaml'
 model = create_model_from_config(config_path)
 model_config = ModelConfig.from_yaml(config_path)
 
-print(f"  ✓ Model: {model_config.name} (TINY - Colab optimized)")
+print(f"  ✓ Model: {model_config.name}")
 print(f"  ✓ Layers: {model_config.num_layers}")
 print(f"  ✓ Hidden dim: {model_config.hidden_dim}")
+print(f"  ✓ Target: ~509M parameters")
 
 # Initialize model
 print(f"\n[6/7] Initializing model")
