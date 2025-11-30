@@ -164,7 +164,7 @@ class ModelConfig:
             attention=attn_cfg,
             memory=mem_cfg,
             norm_type=model_dict.get('norm', {}).get('type', 'rmsnorm'),
-            norm_eps=model_dict.get('norm', {}).get('eps', 1e-6),
+            norm_eps=float(model_dict.get('norm', {}).get('eps', 1e-6)),  # Explicit float cast
             activation=model_dict.get('activation', 'swiglu'),
             dropout=model_dict.get('dropout', 0.1),
             attention_dropout=model_dict.get('attention_dropout', 0.1),
