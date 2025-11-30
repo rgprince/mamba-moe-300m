@@ -1,0 +1,75 @@
+# Mamba-MoE Tiny - Optimized for Colab/Kaggle Testing
+# ~50M parameters, compiles in <30 seconds
+
+name: mamba-moe-tiny-v1
+version: 1.0.0
+
+# Model size (reduced for Colab)
+num_layers: 6  # Reduced from 24
+hidden_dim: 512  # Reduced from 1024
+intermediate_dim: 1408  # Reduced from 2816
+
+# Factorized Embeddings (reduced)
+embedding:
+  vocab_size: 32000
+  embedding_dim: 128  # Reduced from 256
+  projection_dim: 512  # Matches hidden_dim
+  tie_weights: true
+
+# Position encoding
+position_encoding:
+  type: rope  # YaRN RoPE
+  max_position_embeddings: 8192
+  rope_theta: 10000
+  rope_scaling_factor: 1.0
+
+# Mamba Configuration (reduced)
+mamba:
+  state_dim: 8  # Reduced from 16
+  conv_kernel: 4
+  expand_factor: 2
+  use_fast_path: true
+  dt_rank: 64  # Reduced from 128
+
+# Soft MoE (fewer layers and experts)
+moe:
+  num_layers: 2  # Only 2 MoE layers (was 6)
+  layer_indices: [2, 4]  # Layers 2 and 4
+  num_experts: 4
+  num_slots: 2
+  shared_expert: true
+  load_balancing_loss_weight: 0.01
+  expert_dropout: 0.1
+  entropy_penalty: 0.001
+
+# Differential Attention (fewer layers)
+attention:
+  num_layers: 2  # Only 2 attention layers (was 4)
+  layer_indices: [3, 5]  # Layers 3 and 5
+  num_heads: 8  # Reduced from 16
+  num_kv_heads: 2  # Reduced from 4
+  head_dim: 64
+  differential_lambda: 0.5
+  use_flash_attention: false  # Disable for compatibility
+
+# Hierarchical Memory (simplified)
+memory:
+  enabled: false  # Disable for speed
+  num_tokens: 0
+  update_rule: gated
+  allocation_enabled: false
+  num_tiers: 1
+  controller:
+    hidden_dim: 256
+    num_layers: 1
+
+# Normalization
+norm:
+  type: rmsnorm
+  eps: 1e-6
+
+# Other
+activation: swiglu
+dropout: 0.1
+attention_dropout: 0.1
+layer_drop: 0.0  # Disabled for testing
