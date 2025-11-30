@@ -44,57 +44,74 @@ print(f"  Expected: {(TOTAL_STEPS * SEQ_LEN) / 1e9:.2f}B tokens processed")
 
 # Step 1: Load Datasets
 print(f"\n{'='*70}")
-print("[1/6] Loading Datasets from HuggingFace")
+print("[1/6] Loading HIGH-QUALITY Datasets from HuggingFace")
 print(f"{'='*70}")
+print(f"Note: First download takes ~5-10 min, then cached for future runs")
 
-from datasets import load_dataset, concatenate_datasets
+from datasets import load_dataset
+
+# HIGH-QUALITY, CLEAN DATASETS
+# Wikipedia: Gold standard encyclopedia (~500MB subset)
+# OpenWebText: Quality web text from Reddit (~500MB subset)
+# Total: ~1GB text data, ~250M tokens
 
 datasets_to_load = [
-    ("roneneldan/TinyStories", "Tiny Stories", 0.4),  # Creative stories
-    ("HuggingFaceH4/ultrachat_200k", "Ultra Chat", 0.3),  # Conversations
-    ("bookcorpus", "Book Corpus", 0.3),  # Books
+    ("wikipedia", "20220301.en", 75000),  # 75k Wikipedia articles
+    ("openwebtext", None, 50000),          # 50k web documents
 ]
 
 all_texts = []
+total_size_mb = 0
 
-for dataset_name, display_name, weight in datasets_to_load:
+for idx, config_tuple in enumerate(datasets_to_load):
+    if len(config_tuple) == 3 and config_tuple[1] is not None:
+        dataset_name, config, max_samples = config_tuple
+    else:
+        dataset_name, _, max_samples = config_tuple
+        config = None
+    
     try:
-        print(f"\n  Loading {display_name}...")
-        
-        if dataset_name == "HuggingFaceH4/ultrachat_200k":
-            # Chat dataset - special handling
-            ds = load_dataset(dataset_name, split="train_sft[:10000]")  # 10k samples
-            texts = []
-            for item in ds:
-                # Combine messages into conversation
-                if 'messages' in item:
-                    conv = "\n".join([f"{m['role']}: {m['content']}" for m in item['messages']])
-                    texts.append(conv)
+        if dataset_name == "wikipedia":
+            print(f"\n  [1/2] Loading Wikipedia (English)...")
+            print(f"        Downloading {max_samples:,} articles (~400-500MB)")
+            ds = load_dataset(dataset_name, config, split=f"train[:{max_samples}]", trust_remote_code=True)
+            texts = [f"{item['title']}\n\n{item['text']}" for item in ds if item.get('text') and len(item['text']) > 100]
+            chars = sum(len(t) for t in texts)
             all_texts.extend(texts)
-            print(f"  ✓ Loaded {len(texts):,} conversations")
+            total_size_mb += chars / 1e6
+            print(f"        ✓ Loaded {len(texts):,} articles")
+            print(f"        ✓ Size: {chars/1e6:.1f}MB text ({chars/1e9:.2f}GB)")
             
-        elif dataset_name == "roneneldan/TinyStories":
-            # Stories dataset
-            ds = load_dataset(dataset_name, split="train[:50000]")  # 50k stories
-            texts = [item['text'] for item in ds if item.get('text')]
+        elif dataset_name == "openwebtext":
+            print(f"\n  [2/2] Loading OpenWebText (Reddit quality)...")
+            print(f"        Downloading {max_samples:,} documents (~300-400MB)")
+            ds = load_dataset(dataset_name, split=f"train[:{max_samples}]", trust_remote_code=True)
+            texts = [item['text'] for item in ds if item.get('text') and len(item['text']) > 200]
+            chars = sum(len(t) for t in texts)
             all_texts.extend(texts)
-            print(f"  ✓ Loaded {len(texts):,} stories")
-            
-        elif dataset_name == "bookcorpus":
-            # Books dataset
-            ds = load_dataset(dataset_name, split="train[:20000]")  # 20k book excerpts
-            texts = [item['text'] for item in ds if item.get('text')]
-            all_texts.extend(texts)
-            print(f"  ✓ Loaded {len(texts):,} book excerpts")
+            total_size_mb += chars / 1e6
+            print(f"        ✓ Loaded {len(texts):,} documents")
+            print(f"        ✓ Size: {chars/1e6:.1f}MB text ({chars/1e9:.2f}GB)")
             
     except Exception as e:
-        print(f"  ⚠ Failed to load {display_name}: {e}")
-        print(f"    Skipping...")
+        print(f"  ⚠ Failed to load {dataset_name}: {e}")
+        print(f"    Continuing with available data...")
 
 # Combine all text
 combined_text = "\n\n".join(all_texts)
-print(f"\n✓ Total text: {len(combined_text):,} characters")
-print(f"  Sample: {combined_text[:200]}")
+
+print(f"\n{'='*70}")
+print(f"DATASET SUMMARY")
+print(f"{'='*70}")
+print(f"Total documents: {len(all_texts):,}")
+print(f"Total size: {len(combined_text)/1e6:.1f}MB ({len(combined_text)/1e9:.3f}GB)")
+print(f"Estimated tokens: ~{len(combined_text)/4/1e6:.1f}M tokens (@ 4 chars/token)")
+print(f"\nTraining plan:")
+print(f"  • 50,000 steps × 128 tokens = 6.4M tokens per epoch")
+print(f"  • ~{(len(combined_text)/4/1e6) / 6.4:.1f} epochs through full dataset")
+print(f"\nSample text:")
+print(f"{combined_text[:200]}...")
+print(f"{'='*70}")
 
 # Step 2: Train Tokenizer
 print(f"\n{'='*70}")
