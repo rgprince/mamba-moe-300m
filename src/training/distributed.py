@@ -64,7 +64,7 @@ def shard_batch(batch: dict, num_devices: int) -> dict:
         # Reshape to [num_devices, per_device, ...]
         return arr.reshape(num_devices, per_device, *arr.shape[1:])
     
-    return jax.tree_map(_shard_array, batch)
+    return jax.tree.map(_shard_array, batch)
 
 
 def create_distributed_train_step(train_step_fn: Callable) -> Callable:
@@ -151,7 +151,7 @@ class DistributedTrainer:
         new_state, metrics = self.train_step_pmap(state, sharded_batch)
         
         # Average metrics across devices
-        metrics = jax.tree_map(lambda x: jnp.mean(x), metrics)
+        metrics = jax.tree.map(lambda x: jnp.mean(x), metrics)
         
         return new_state, metrics
     
