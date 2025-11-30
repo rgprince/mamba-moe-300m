@@ -24,20 +24,23 @@ print("=" * 70)
 print("Mamba-MoE 300M - Real Training on Quality Data")
 print("=" * 70)
 
-# Configuration
-TOTAL_STEPS = 1000  # Train for 1000 steps (adjust based on time)
-BATCH_SIZE = 1      # MINIMUM for TPU v5e single chip (16GB HBM)
-SEQ_LEN = 128       # MINIMUM for TPU v5e single chip
+# Configuration - REAL TRAINING
+TOTAL_STEPS = 50000  # 50k steps = ~3-4 hours on TPU v5e
+BATCH_SIZE = 1       # Optimized for TPU v5e single chip (16GB HBM)
+SEQ_LEN = 128        # Optimized for TPU v5e single chip
 LEARNING_RATE = 3e-4
-SAVE_EVERY = 100    # Save checkpoint every 100 steps
+SAVE_EVERY = 500     # Save checkpoint every 500 steps
+LOG_EVERY = 50       # Log metrics every 50 steps
 
-print(f"\n[CONFIG]")
-print(f"  Steps: {TOTAL_STEPS}")
-print(f"  Batch size: {BATCH_SIZE} (TPU v5e single chip limit)")
-print(f"  Sequence length: {SEQ_LEN} (TPU v5e single chip limit)")
-print(f"  Save interval: {SAVE_EVERY}")
-print(f"\n  NOTE: TPU v5e has 16GB HBM per chip")
-print(f"        509M model needs careful memory management")
+print(f"\n[CONFIG] - REAL TRAINING")
+print(f"  Total steps: {TOTAL_STEPS:,} (~3-4 hours)")
+print(f"  Batch size: {BATCH_SIZE}")
+print(f"  Sequence length: {SEQ_LEN}")
+print(f"  Learning rate: {LEARNING_RATE}")
+print(f"  Save interval: {SAVE_EVERY} steps")
+print(f"  Log interval: {LOG_EVERY} steps")
+print(f"\n  TPU v5e: 16GB HBM per chip, ~2000 tok/s")
+print(f"  Expected: {(TOTAL_STEPS * SEQ_LEN) / 1e9:.2f}B tokens processed")
 
 # Step 1: Load Datasets
 print(f"\n{'='*70}")
@@ -275,7 +278,7 @@ for step in range(min(TOTAL_STEPS, len(batches))):
     metrics['tokens_per_sec'] = (BATCH_SIZE * SEQ_LEN) / step_time if step > 0 else 0
     
     # Log
-    if step % 10 == 0 or step == 0:
+    if step % LOG_EVERY == 0 or step == 0:
         loss = float(metrics['loss'])
         ppl = float(metrics['perplexity'])
         lr = float(metrics['learning_rate'])
