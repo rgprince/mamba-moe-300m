@@ -26,16 +26,18 @@ print("=" * 70)
 
 # Configuration
 TOTAL_STEPS = 1000  # Train for 1000 steps (adjust based on time)
-BATCH_SIZE = 2      # Reduced for TPU v5e memory (was 4)
-SEQ_LEN = 256       # Reduced for TPU v5e memory (was 512)
+BATCH_SIZE = 1      # MINIMUM for TPU v5e single chip (16GB HBM)
+SEQ_LEN = 128       # MINIMUM for TPU v5e single chip
 LEARNING_RATE = 3e-4
 SAVE_EVERY = 100    # Save checkpoint every 100 steps
 
 print(f"\n[CONFIG]")
 print(f"  Steps: {TOTAL_STEPS}")
-print(f"  Batch size: {BATCH_SIZE} (TPU optimized)")
-print(f"  Sequence length: {SEQ_LEN} (TPU optimized)")
+print(f"  Batch size: {BATCH_SIZE} (TPU v5e single chip limit)")
+print(f"  Sequence length: {SEQ_LEN} (TPU v5e single chip limit)")
 print(f"  Save interval: {SAVE_EVERY}")
+print(f"\n  NOTE: TPU v5e has 16GB HBM per chip")
+print(f"        509M model needs careful memory management")
 
 # Step 1: Load Datasets
 print(f"\n{'='*70}")
