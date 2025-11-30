@@ -33,14 +33,14 @@ from src.training.distributed import DistributedTrainer
 # Configuration
 print("\n[1/6] Configuration")
 DEMO_STEPS = 10
-BATCH_SIZE = 4  # Small for demo
-SEQ_LEN = 512   # Short sequences for speed
+BATCH_SIZE = 1   # Reduced for TPU memory (was 4)
+SEQ_LEN = 128    # Reduced for TPU memory (was 512)
 LEARNING_RATE = 3e-4
 VOCAB_SIZE = 32000
 
 print(f"  Steps: {DEMO_STEPS}")
-print(f"  Batch size: {BATCH_SIZE}")
-print(f"  Sequence length: {SEQ_LEN}")
+print(f"  Batch size: {BATCH_SIZE} (reduced for TPU memory)")
+print(f"  Sequence length: {SEQ_LEN} (reduced for TPU memory)")
 print(f"  Devices: {jax.device_count()}")
 
 # Load model
