@@ -1,5 +1,5 @@
-# Core ML frameworks
-jax[tpu]>=0.4.23
+# ML/Training Libraries
+jax[tpu]>=0.4.20
 flax>=0.8.0
 optax>=0.1.9
 chex>=0.1.85
@@ -11,15 +11,19 @@ grain  # Google's data loading library
 sentencepiece>=0.1.99
 tokenizers>=0.15.0
 datasets>=2.16.0
+numpy>=1.24.0
 
 # Utilities
 numpy>=1.26.0
-pyyaml>=6.0.1
-pydantic>=2.5.0
+pyyaml>=6.0
+pydantic>=2.0.0
 tqdm>=4.66.0
 einops>=0.7.0
+requests>=2.31.0
+huggingface-hub>=0.20.0
+python-dotenv>=1.0.0
 
-# Logging & monitoring
+# Logging (optional)
 wandb>=0.16.0
 tensorboard>=2.15.0
 tensorboardx>=2.6
@@ -28,11 +32,12 @@ tensorboardx>=2.6
 pytest>=7.4.0
 pytest-xdist>=3.5.0
 
-# Export & quantization
+# Export (Phase 4)
+onnx>=1.15.0
 torch>=2.1.0  # For PyTorch conversion
-transformers>=4.36.0
+transformers>=4.35.0  # For model compatibility
 gguf>=0.5.0  # GGUF format support
-sentencepiece>=0.1.99
+encepiece>=0.1.99
 
 # Memory & retrieval (for L3 memory)
 chromadb>=0.4.18
