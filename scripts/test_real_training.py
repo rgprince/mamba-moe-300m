@@ -37,34 +37,30 @@ print(f"  Batch size: {BATCH_SIZE}")
 print(f"  Sequence length: {SEQ_LEN}")
 print(f"  Vocab: {VOCAB_SIZE} (character-level)")
 
-# Download WikiText-2
-print(f"\n[2/7] Downloading dataset")
-data_dir = Path("data")
-data_dir.mkdir(exist_ok=True)
-
-wikitext_url = "https://s3.amazonaws.com/research.metamind.io/wikitext/wikitext-2-raw-v1.zip"
-zip_path = data_dir / "wikitext-2.zip"
-extract_dir = data_dir / "wikitext-2"
-
-if not extract_dir.exists():
-    print(f"  Downloading from {wikitext_url}")
-    urllib.request.urlretrieve(wikitext_url, zip_path)
-    print(f"  ✓ Downloaded to {zip_path}")
+# Download WikiText-2 using HuggingFace datasets
+print(f"\n[2/7] Loading dataset")
+try:
+    from datasets import load_dataset
     
-    print(f"  Extracting...")
-    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-        zip_ref.extractall(data_dir)
-    print(f"  ✓ Extracted to {extract_dir}")
-else:
-    print(f"  ✓ Dataset already exists at {extract_dir}")
-
-# Read training data
-train_file = extract_dir / "wikitext-2-raw" / "wiki.train.raw"
-with open(train_file, 'r', encoding='utf-8') as f:
-    text = f.read()
-
-print(f"  ✓ Loaded {len(text):,} characters")
-print(f"  Sample: {text[:100]}")
+    print(f"  Loading WikiText-2 from HuggingFace...")
+    dataset = load_dataset("wikitext", "wikitext-2-raw-v1", split="train")
+    
+    # Combine all text
+    text = "\n".join([item['text'] for item in dataset if item['text'].strip()])
+    
+    print(f"  ✓ Loaded {len(text):,} characters")
+    print(f"  Sample: {text[:100]}")
+    
+except ImportError:
+    print("  datasets library not found, using dummy text...")
+    # Fallback: create dummy text for testing
+    text = """
+    The quick brown fox jumps over the lazy dog. This is a test of the training system.
+    Machine learning models learn patterns from data. Deep learning uses neural networks.
+    Training requires data, compute, and patience. Models improve with more examples.
+    """ * 1000  # Repeat to get enough text
+    
+    print(f"  ✓ Using dummy text: {len(text):,} characters")
 
 # Character-level tokenization (simple, no SentencePiece needed)
 print(f"\n[3/7] Creating tokenizer")
