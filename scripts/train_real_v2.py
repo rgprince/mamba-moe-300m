@@ -140,27 +140,34 @@ print(f"  • 50,000 steps × 128 tokens = 6.4M tokens per epoch")
 print(f"  • ~{(len(combined_text)/4/1e6) / 6.4:.1f} epochs through dataset")
 print(f"{'='*70}")
 
-# Step 2: Train Tokenizer
+# Step 2: Train Tokenizer (on SAMPLE only to save RAM)
 print(f"\n{'='*70}")
 print("[2/6] Training SentencePiece Tokenizer")
 print(f"{'='*70}")
 
 data_dir = Path("data")
 data_dir.mkdir(exist_ok=True)
-train_file = data_dir / "train_combined.txt"
 
-print(f"  Saving training data to {train_file}")
-with open(train_file, 'w', encoding='utf-8') as f:
-    f.write(combined_text)
+# CRITICAL: Only save a SAMPLE for tokenizer training (saves RAM!)
+# 200MB is plenty for an 8K vocab tokenizer
+TOKENIZER_SAMPLE_SIZE = 200_000_000  # 200MB
+tokenizer_sample = combined_text[:TOKENIZER_SAMPLE_SIZE]
+
+tokenizer_train_file = data_dir / "tokenizer_sample.txt"
+print(f"  Saving tokenizer sample ({len(tokenizer_sample)/1e6:.1f}MB) to {tokenizer_train_file}")
+with open(tokenizer_train_file, 'w', encoding='utf-8') as f:
+    f.write(tokenizer_sample)
 
 from src.data import SPTokenizer
 
-print(f"  Training tokenizer (vocab_size=8000)...")
+print(f"  Training tokenizer (vocab_size=8000) on sample...")
+print(f"  (This prevents RAM overflow - we only need a sample!)")
 tokenizer = SPTokenizer.train(
-    input_files=[str(train_file)],
+    input_files=[str(tokenizer_train_file)],
     vocab_size=8000,
     model_prefix=str(data_dir / "tokenizer"),
-    model_type="bpe"
+    model_type="bpe",
+    input_sentence_size=2_000_000  # Limit to 2M sentences max
 )
 
 print(f"  ✓ Tokenizer trained!")
@@ -171,7 +178,8 @@ print(f"\n{'='*70}")
 print("[3/6] Creating Training Batches")
 print(f"{'='*70}")
 
-print(f"  Tokenizing {len(combined_text):,} characters...")
+print(f"  Tokenizing FULL {len(combined_text):,} characters...")
+print(f"  (Using all data for training, not just the tokenizer sample!)")
 token_ids = tokenizer.encode(combined_text, add_bos=False, add_eos=False)
 print(f"  ✓ Tokenized: {len(token_ids):,} tokens")
 
