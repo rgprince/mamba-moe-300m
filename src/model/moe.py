@@ -149,9 +149,12 @@ class SoftMoE(nn.Module):
         # L2 loss from uniform distribution
         load_balancing_loss = jnp.mean((expert_usage - uniform_prob) ** 2)
         
+        
         # Entropy regularization (encourage diverse routing)
-        entropy = -jnp.sum(router_probs * jnp.log(router_probs + 1e-10), axis=-1)
+        # 🔧 FIX: Use maximum instead of addition to prevent log(very small number)
+        entropy = -jnp.sum(router_probs * jnp.log(jnp.maximum(router_probs, 1e-7)), axis=-1)
         entropy_loss = -jnp.mean(entropy)  # Negative because we want to maximize entropy
+
         
         return {
             'load_balancing_loss': load_balancing_loss,

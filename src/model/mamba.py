@@ -84,14 +84,23 @@ class SelectiveSSM(nn.Module):
         # A_bar = exp(A * dt)  [batch, seq_len, state_dim, hidden_dim]
         # B_bar = (A * dt).inv() * (A_bar - I) * B ≈ dt * B
         
-        # Expand dimensions for broadcasting
-        # A: [1, 1, state_dim, hidden_dim]
-        # dt: [batch, seq_len, 1, hidden_dim]
-        A_expanded = A[None, None, :, :]
+        
+        # Input modulation
+        x_expanded = x[:, :, None, :]  # [batch, seq_len, 1, hidden_dim]
+        
+        # 🔧 FIX: Clip dt to prevent overflow
+        # dt can become too large during training, causing exp() overflow
+        dt = jnp.clip(dt, 0.001, 1.0)
         dt_expanded = dt[:, :, None, :]
         
         # Discretize A: exp(A * dt)
-        A_bar = jnp.exp(A_expanded * dt_expanded)  # [batch, seq_len, state_dim, hidden_dim]
+        # 🔧 FIX: Clip the exponent to prevent Inf
+        # A is negative, dt is positive, so A*dt should be negative
+        # Clip to [-10, 0] to ensure exp output is in [4.5e-5, 1.0]
+        exponent = A_expanded * dt_expanded
+        exponent = jnp.clip(exponent, -10.0, 0.0)
+        A_bar = jnp.exp(exponent)  # [batch, seq_len, state_dim, hidden_dim]
+
         
         # Discretize B: approximately dt * B
         B_expanded = B[:, :, :, None]  # [batch, seq_len, state_dim, 1]
