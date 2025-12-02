@@ -11,12 +11,13 @@ from pathlib import Path
 @dataclass
 class EmbeddingConfig:
     """Embedding layer configuration"""
-    vocab_size: int = 32000
+    vocab_size: Optional[int] = None  # Must be set from config, no hardcoded default!
     factorized: bool = True
     embed_dim: int = 256  # Factorized dimension
     hidden_dim: int = 1024
     dropout: float = 0.1
     tie_weights: bool = True
+
 
 
 @dataclass
@@ -122,7 +123,16 @@ class ModelConfig:
         # Parse nested configs
         model_dict = config_dict.get('model', {})
         
-        embedding_cfg = EmbeddingConfig(**model_dict.get('embedding', {}))
+        # Get vocab_size from model level (NOT embedding level!)
+        vocab_size = model_dict.get('vocab_size')
+        if vocab_size is None:
+            raise ValueError("vocab_size must be specified in model config!")
+        
+        # Create embedding config with proper vocab_size
+        embedding_dict = model_dict.get('embedding', {})
+        embedding_dict['vocab_size'] = vocab_size  # Override with model-level vocab
+        embedding_cfg = EmbeddingConfig(**embedding_dict)
+        
         pos_cfg = PositionEncodingConfig(**model_dict.get('position_encoding', {}))
         
         # Parse mamba config with type casting
