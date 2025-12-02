@@ -76,14 +76,14 @@ class SelectiveSSM(nn.Module):
         A = -jnp.exp(A)
         
         # Discretize continuous parameters (convert to discrete-time)
-        # Using Zero-Order Hold (ZOH) discretization:
-        # A_discrete = exp(A * dt)
-        # B_discrete = A^{-1} (exp(A * dt) - I) * B
-        
         # For efficiency, use approximation:
         # A_bar = exp(A * dt)  [batch, seq_len, state_dim, hidden_dim]
         # B_bar = (A * dt).inv() * (A_bar - I) * B ≈ dt * B
         
+        # Expand dimensions for broadcasting
+        # A: [1, 1, state_dim, hidden_dim]
+        # dt: [batch, seq_len, 1, hidden_dim]
+        A_expanded = A[None, None, :, :]
         
         # Input modulation
         x_expanded = x[:, :, None, :]  # [batch, seq_len, 1, hidden_dim]
@@ -100,7 +100,6 @@ class SelectiveSSM(nn.Module):
         exponent = A_expanded * dt_expanded
         exponent = jnp.clip(exponent, -10.0, 0.0)
         A_bar = jnp.exp(exponent)  # [batch, seq_len, state_dim, hidden_dim]
-
         
         # Discretize B: approximately dt * B
         B_expanded = B[:, :, :, None]  # [batch, seq_len, state_dim, 1]
